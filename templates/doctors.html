@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}
+Doctors
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-sm-8 mt-4">
+        <h2>Doctors</h2>
+        {% if doctors %}
+        <ul class="list-group">
+            {% for doctor in doctors %}
+            <li class="list-group-item">
+                {{ doctor.name }} - {{ doctor.specialty }}
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                    data-target="#doctorModal{{ doctor.id }}">
+                    View Details
+                </button>
+                <!-- Modal -->
+                <div class="modal fade" id="doctorModal{{ doctor.id }}" tabindex="-1" role="dialog"
+                    aria-labelledby="doctorModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="doctorModalLabel">{{ doctor.name }}</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Specialty: {{ doctor.specialty }}</p>
+                                <!-- Add more details as needed -->
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No doctors found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
