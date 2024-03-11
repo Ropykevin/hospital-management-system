@@ -8,42 +8,104 @@ Hospitals
 <div class="row justify-content-center">
     <div class="col-sm-8 mt-4">
         <h2>Hospitals</h2>
-        {% if hospitals %}
-        <ul class="list-group">
+        <button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#addHospitalModal">
+            Add Hospital
+        </button>
+        <ul class="list-group" id="hospitalList">
+            {% if hospitals %}
             {% for hospital in hospitals %}
-            <li class="list-group-item">
-                {{ hospital.name }} - {{ hospital.location }}
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                    data-target="#hospitalModal{{ hospital.id }}">
-                    View Details
-                </button>
-                <!-- Modal -->
-                <div class="modal fade" id="hospitalModal{{ hospital.id }}" tabindex="-1" role="dialog"
-                    aria-labelledby="hospitalModalLabel" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="hospitalModalLabel">{{ hospital.name }}</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <p>Location: {{ hospital.location }}</p>
-                                <!-- Add more details as needed -->
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </li>
+            <li class="list-group-item">{{ hospital.name }} - {{ hospital.location }}</li>
             {% endfor %}
+            {% else %}
+            <li class="list-group-item">No hospitals found.</li>
+            {% endif %}
         </ul>
-        {% else %}
-        <p>No hospitals found.</p>
-        {% endif %}
     </div>
 </div>
+
+<!-- Add Hospital Modal -->
+<div class="modal fade" id="addHospitalModal" tabindex="-1" role="dialog" aria-labelledby="addHospitalModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addHospitalModalLabel">Add Hospital</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addHospitalForm">
+                    <div class="form-group">
+                        <label for="hospitalName">Name</label>
+                        <input type="text" class="form-control" id="hospitalName" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="hospitalLocation">Location</label>
+                        <input type="text" class="form-control" id="hospitalLocation" name="location" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function () {
+        $('#addHospitalForm').submit(function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Serialize form data
+            var formData = $(this).serialize();
+
+            // Submit form data via AJAX
+            $.ajax({
+                type: 'POST',
+                url: '/hospital',
+                data: formData,
+                success: function (response) {
+                    // Reload page to show updated hospital list
+                    location.reload();
+                },
+                error: function (error) {
+                    console.error('Error adding hospital:', error);
+                }
+            });
+        });
+
+        fetch('http://127.0.0.1:5000/hospitals')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch hospitals.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Process the fetched data and update the template
+                const hospitalList = document.getElementById('hospitalList');
+                if (data && data.length > 0) {
+                    data.forEach(hospital => {
+                        const listItem = document.createElement('li');
+                        listItem.classList.add('list-group-item');
+                        listItem.textContent = `${hospital.name} - ${hospital.location}`;
+                        hospitalList.appendChild(listItem);
+                    });
+                } else {
+                    const noHospitalsMessage = document.createElement('li');
+                    noHospitalsMessage.classList.add('list-group-item');
+                    noHospitalsMessage.textContent = 'No hospitals found.';
+                    hospitalList.appendChild(noHospitalsMessage);
+                }
+            })
+            .catch(error => {
+                // Display error message or handle the error
+                console.error(error);
+                const hospitalList = document.getElementById('hospitalList');
+                hospitalList.innerHTML = '<li class="list-group-item">Error fetching hospitals. Please try again later.</li>';
+            });
+    });
+</script>
 {% endblock %}

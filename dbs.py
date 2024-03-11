@@ -2,9 +2,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
 from flask_login import LoginManager,UserMixin
 import bcrypt
+import sqlite3
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Kevin254!@localhost/brian'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hospital.db'
 db = SQLAlchemy(app)
 
 
@@ -83,14 +84,12 @@ class User(UserMixin, db.Model):
 class UserRole(db.Model):
     __tablename__ = 'user_roles'
 
-    user_id = db.Column(db.Integer, db.ForeignKey(
-        'users.id'), primary_key=True)
-    role_id = db.Column(db.Integer, db.ForeignKey(
-        'roles.role_id'), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.role_id'))
 
     user = db.relationship('User', backref='user_roles')
     role = db.relationship('Role', backref='user_roles')
-
 
 
 class Role(db.Model):
@@ -98,6 +97,7 @@ class Role(db.Model):
 
     role_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
+
 
 
 # Create all database tables

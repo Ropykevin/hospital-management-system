@@ -1,10 +1,10 @@
 from flask_login import LoginManager, login_user, logout_user, current_user
 from flask import Flask, jsonify, request, render_template, redirect, session, flash
-from dbmodel import Hospital, Specialty, Doctor, Patient, db, User
-
+from dbs import Hospital, Specialty, Doctor, Patient, db, User
+import sqlite3
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Kevin254!@localhost/brian'
-app.secret_key = 'your_secret_key'  # Add a secret key for session management
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hospital.db'
+app.secret_key = 'your_secret_key' 
 db.init_app(app)
 
 login_manager = LoginManager()
@@ -13,7 +13,8 @@ login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.query(User).get(int(user_id))
+
 
 
 @app.route('/')
@@ -25,8 +26,15 @@ def landing():
 
 @app.route('/hospitals', methods=['GET'])
 def get_hospitals():
-    hospitals = Hospital.query.all()
-    return render_template('hospitals.html',hospitals=hospitals)
+    try:
+        hospitals = Hospital.query.all()
+        return render_template('hospitals.html', hospitals=hospitals)
+    except Exception as e:
+        print(f"Error fetching hospitals: {str(e)}")
+        # Optionally, log the error message for further investigation
+        # logger.error(f"Error fetching hospitals: {str(e)}")
+        return render_template('error.html', error_message="Error fetching hospitals")
+
 # Route to retrieve a specific hospital by ID
 
 
@@ -41,44 +49,52 @@ def get_hospital(hospital_id):
 # Route to create a new hospital
 
 
-@app.route('/hospital', methods=['POST'])
-def create_hospital():
-    data = request.json
-    hospital = Hospital(**data)
-    db.session.add(hospital)
-    db.session.commit()
-    flash('Hospital created successfully', 'success')
-    return redirect('/hospitals')
-
+@app.route('/add_hospital', methods=['GET', 'POST'])
+def add_hospital():
+    if request.method == 'POST':
+        # Handle form submission to add a new hospital
+        name = request.form['name']
+        location = request.form['location']
+        contact_info = request.form['contact_info']
+        # Create a new hospital object and add it to the database
+        new_hospital = Hospital(
+            name=name, location=location, contact_info=contact_info)
+        db.session.add(new_hospital)
+        db.session.commit()
+        flash('Hospital added successfully', 'success')
+        return redirect('/hospitals')
+    return render_template('add_hospital.html')
 # Route to update an existing hospital
 
 
-@app.route('/hospital/<int:hospital_id>', methods=['PUT'])
+@app.route('/update_hospital/<int:hospital_id>', methods=['GET', 'POST'])
 def update_hospital(hospital_id):
     hospital = Hospital.query.get(hospital_id)
     if hospital:
-        data = request.json
-        for key, value in data.items():
-            setattr(hospital, key, value)
-        db.session.commit()
-        flash('Hospital updated successfully', 'success')
-        return redirect('/hospital/{hospital_id}')
+        if request.method == 'POST':
+            # Handle form submission to update the hospital
+            hospital.name = request.form['name']
+            hospital.location = request.form['location']
+            hospital.contact_info = request.form['contact_info']
+            db.session.commit()
+            flash('Hospital updated successfully', 'success')
+            return redirect(f'/hospital/{hospital_id}')
+        return render_template('update_hospital.html', hospital=hospital)
     else:
-        return jsonify({'error': 'Hospital not found'}), 404
+        flash('Hospital not found', 'error')
+        return redirect('/hospitals')
 
-# Route to delete a hospital
 
-
-@app.route('/hospital/<int:hospital_id>', methods=['DELETE'])
+@app.route('/delete_hospital/<int:hospital_id>')
 def delete_hospital(hospital_id):
     hospital = Hospital.query.get(hospital_id)
     if hospital:
         db.session.delete(hospital)
         db.session.commit()
         flash('Hospital deleted successfully', 'success')
-        return redirect('/hospitals')
     else:
-        return jsonify({'error': 'Hospital not found'}), 404
+        flash('Hospital not found', 'error')
+    return redirect('/hospitals')
 
 
 @app.route('/register', methods=['GET', 'POST'])
